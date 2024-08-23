@@ -1123,7 +1123,7 @@ line = (
     Line(init_opts=opts.InitOpts(theme=ThemeType.WONDERLAND, width=f'{WIDTH * 0.5}px',
                                  height=f'{HEIGHT * 0.5}px'))
     .add_xaxis(x_data)
-    .add_yaxis('明楼', y_data, label_opts=opts.LabelOpts(is_show=True))
+    .add_yaxis('', y_data, label_opts=opts.LabelOpts(is_show=True))
     .set_global_opts(
         tooltip_opts=opts.TooltipOpts(
             trigger='axis',
