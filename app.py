@@ -1137,13 +1137,13 @@ line = (
 )
 
 # 用户粘性表
-# QRV_df3 = query_data2(df_sheet3, date_input5)
-
 # 统计每个call_number的总数
 count_series = QRV_df4['call_number'].value_counts()
 # 只保留大于1的记录
 filtered_count = count_series[count_series > 1]
-# 格式化call_number，4-7位加*
+# 只保留大于2的记录
+filtered_count2 = count_series[count_series > 2]
+
 def format_number(num):
     num_str = str(num)
     return num_str[:3] + '*' * 4 + num_str[7:]
@@ -1156,6 +1156,10 @@ result_df = pd.DataFrame({
     'call_number2': formatted_numbers,
     'count': filtered_count.values
 })
+result_df2 = pd.DataFrame({
+    'call_number2': filtered_count2.index,
+    'count': filtered_count2.values
+})
 
 # 显示结果
 table5=result_df[['call_number2','count']]
@@ -1165,6 +1169,32 @@ table5 = table5.rename(columns={
     'count': '拨打次数',
 })
 table5=table5.style.background_gradient(subset=['拨打次数'],cmap='Greens')
+
+# 查看详情，20240826新增
+call_numbers = result_df2['call_number2'].tolist()
+matched_rows = QRV_df4[QRV_df4['call_number'].isin(call_numbers)]
+matched_rows['标签'] = np.where(matched_rows['aa'].str.contains('转人工服务', na=False), '转人工', '全机器')
+matched_rows = matched_rows[['call_number', '时间', 'result_id' ,'通话时长', '标签', 'thxq']]
+matched_rows['通话时长'] = round(matched_rows['通话时长']/60, 1)
+matched_rows_sorted = matched_rows.sort_values(by=['call_number', '时间'], ascending=[True, False])
+# 将排序后的 DataFrame 赋值给 table6
+table8 = matched_rows_sorted
+table8 = table8.rename(columns={
+    'result_id': '通话ID',
+    'call_number': '手机号',
+    'thxq': '通话详情',
+})
+
+style2={
+'通话时长':'{0}分钟'
+}
+
+# 加密手机号
+table8['手机号'] = table8['手机号'].astype(str)
+table8['手机号'] = (table8['手机号'].str[:3] + '****' + table8['手机号'].str[7:])
+
+table8=table8.style.format(style2).background_gradient(subset=['通话时长'],cmap='Greens')
+
 
 with st.container(border=True):
     # st.subheader("用户粘性")
@@ -1181,6 +1211,8 @@ with st.container(border=True):
         html_content7 = f'<strong><span style="font-size: 20px;">用户重复呼入次数</span></strong>'
         st.write(html_content7, unsafe_allow_html=True)
         st.dataframe(table5, width=int(WIDTH * 0.15), hide_index=True)
+        with st.expander("查看详情 - 3次及以上重呼对话"):
+            st.dataframe(table8, hide_index=True)
 
 # 通话时长TOP10
 top_tags3 = QRV_df4.nlargest(10, "通话时长").copy()
