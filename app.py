@@ -175,6 +175,180 @@ def yt_stats(df, start_date, end_date):
 
     return df_filtered
 
+def data_filtering(date_key, filter_date=True):
+    df1 =df_sheet3.copy()
+
+    blank, box_date = st.columns([8, 2])
+    # 过滤日期
+    if filter_date:
+        with box_date:
+            st.popover('时间').date_input(
+                '请选择起止日期', [date(date.today().year, 1, 1), date.today()], key=date_key
+            )
+        date_range = st.session_state[date_key]
+        if len(date_range) != 2:
+            date_range = (date(date.today().year, 1, 1), date.today())
+        # 筛选时间范围
+        start = datetime(date_range[0].year, date_range[0].month, date_range[0].day, 0, 0, 0)
+        end = datetime(date_range[1].year, date_range[1].month, date_range[1].day, 23, 59, 59)
+        df2 = df1[(df1['时间'] >= start) & (df1['时间'] <= end)]
+
+    if filter_date:
+        st.info(f'【当前选择时间范围】：{date_range[0]}~{date_range[1]}')
+
+    filtered_df = df2
+
+    return filtered_df
+
+def render_freq_selectbox(key):
+    st.popover("频率").radio(
+        '请选择数据变化的时间频率',
+        ["日度", "周度", "月度"],
+        index=1,
+        key=key
+    )
+    freq = st.session_state[key]
+
+    if freq == '月度':
+        freq = 'ME'
+    elif freq == '周度':
+        freq = 'W-MON'
+    elif freq == '日度':
+        freq = 'D'
+
+    return freq
+
+def query_detail_fig(filtered_df: pd.DataFrame, freq):
+    stats = filtered_df.groupby(pd.Grouper(key='时间', freq=freq)).agg(
+        通话时长第1四分位数=('通话时长', lambda x: x.quantile(0.25)),
+        通话时长第2四分位数=('通话时长', lambda x: x.quantile(0.75)),
+        通话总时长=('通话时长', 'sum'),
+        通话平均时长=('通话时长', 'mean'),
+        对话轮数第1四分位数=('对话轮数', lambda x: x.quantile(0.25)),
+        对话轮数第2四分位数=('对话轮数', lambda x: x.quantile(0.75)),
+        对话平均轮数=('对话轮数', 'mean')
+    )
+
+    stats['通话时长第1四分位数'] = stats['通话时长第1四分位数'].fillna(0)
+    stats['通话时长第2四分位数'] = stats['通话时长第2四分位数'].fillna(0)
+    stats['通话平均时长'] = stats['通话平均时长'].fillna(0)
+    stats['对话轮数第1四分位数'] = (stats['对话轮数第1四分位数'].fillna(0)).round(2)
+    stats['对话轮数第2四分位数'] = (stats['对话轮数第2四分位数'].fillna(0)).round(2)
+    stats['对话平均轮数'] = (stats['对话平均轮数'].fillna(0)).round(2)
+
+    # 时长类数据转换为分钟
+    stats['通话总时长'] = (stats['通话总时长'] / 60).round(2)
+    stats['通话平均时长'] = (stats['通话平均时长'] / 60).round(2)
+    stats['通话时长第1四分位数'] = (stats['通话时长第1四分位数'] / 60).round(2)
+    stats['通话时长第2四分位数'] = (stats['通话时长第2四分位数'] / 60).round(2)
+
+    # 按freq重置索引
+    if freq == 'ME':
+        stats.index = stats.index.strftime('%Y-%m')
+    elif freq == 'W-MON':
+        tmp = pd.DataFrame()
+        tmp['周开始日期'] = stats.index
+        tmp['周结束日期'] = stats.index + pd.offsets.Week(weekday=6)
+        tmp['周范围'] = tmp['周开始日期'].astype('str') + '~' + (tmp['周结束日期']).astype('str')
+        stats.index = tmp['周范围']
+    elif freq == 'D':
+        stats.index = stats.index.strftime('%Y-%m-%d')
+    stats.index.name = '时间'
+
+    return stats
+
+def query_detail_fig2(filtered_df: pd.DataFrame, freq):
+    stats = filtered_df.groupby(pd.Grouper(key='时间', freq=freq)).agg(
+        通话数=('result_id','size')
+    )
+
+    stats['通话数'] = stats['通话数'].fillna(0)
+
+    # 按freq重置索引
+    if freq == 'ME':
+        stats.index = stats.index.strftime('%Y-%m')
+    elif freq == 'W-MON':
+        tmp = pd.DataFrame()
+        tmp['周开始日期'] = stats.index
+        tmp['周结束日期'] = stats.index + pd.offsets.Week(weekday=6)
+        tmp['周范围'] = tmp['周开始日期'].astype('str') + '~' + (tmp['周结束日期']).astype('str')
+        stats.index = tmp['周范围']
+    elif freq == 'D':
+        stats.index = stats.index.strftime('%Y-%m-%d')
+    stats.index.name = '时间'
+    stats=stats.sort_values(['时间'], ascending=False)
+
+    return stats
+
+
+WIDTH3=1400
+HEIGHT3=960
+def render_calls_detail(data:pd.DataFrame):
+    if len(data)==0:
+        return
+
+    # 柱形图
+    bar=(
+        Bar(init_opts=opts.InitOpts(theme=ThemeType.WONDERLAND,width=f'{WIDTH3*0.8}px',height=f'{HEIGHT3*0.4}px'))
+        .add_xaxis(data.index.astype('str').tolist())
+        .add_yaxis('通话总时长',data['通话总时长'].values.tolist(), label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='#F08080'))
+        .set_global_opts(
+            tooltip_opts=opts.TooltipOpts(
+                trigger='axis',
+                axis_pointer_type='cross'
+            ),
+        )
+    )
+
+    # 条形图
+    line=(
+        Line(init_opts=opts.InitOpts(theme=ThemeType.WONDERLAND,width=f'{WIDTH3*0.8}px',height=f'{HEIGHT3*0.4}px'))
+        .add_xaxis(data.index.astype('str').tolist())
+        .extend_axis(yaxis=opts.AxisOpts(type_='value',position='right',name='分钟'))
+        .add_yaxis('通话平均时长',data['通话平均时长'], label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='green'),yaxis_index=1,color='green')
+        .add_yaxis('通话时长上四分位数',data['通话时长第1四分位数'], label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='blue'),yaxis_index=1,color='red')
+        .add_yaxis('通话时长下四分位数', data['通话时长第2四分位数'], label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='orange'), yaxis_index=1, color='red')
+        .set_global_opts(
+            tooltip_opts=opts.TooltipOpts(
+                trigger='axis',
+                axis_pointer_type='cross',
+            ),
+            datazoom_opts=opts.DataZoomOpts(),
+            # title_opts=opts.TitleOpts(title='通话时长图'),
+            title_opts=opts.TitleOpts(title="通话时长详情", subtitle="分钟"),
+            legend_opts=opts.LegendOpts(type_='scroll')
+        )
+    )
+    # 组合绘图
+    grid_html=line.overlap(bar)
+    components.html(grid_html.render_embed(),width=WIDTH3*0.8,height=HEIGHT3*0.4)
+
+def render_calls_detail2(data:pd.DataFrame):
+    if len(data)==0:
+        return
+
+    # 折线图
+    line=(
+        Line(init_opts=opts.InitOpts(theme=ThemeType.WONDERLAND,width=f'{WIDTH3*0.8}px',height=f'{HEIGHT3*0.4}px'))
+        .add_xaxis(data.index.astype('str').tolist())
+        .extend_axis(yaxis=opts.AxisOpts(type_='value',position='left',name='轮数'))
+        .add_yaxis('对话平均轮数',data['对话平均轮数'], label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='green'),yaxis_index=1,color='green')
+        .add_yaxis('对话轮数上四分位数',data['对话轮数第1四分位数'], label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='blue'),yaxis_index=1,color='red')
+        .add_yaxis('对话轮数下四分位数', data['对话轮数第2四分位数'], label_opts=opts.LabelOpts(is_show=False), itemstyle_opts = opts.ItemStyleOpts(color='orange'), yaxis_index=1, color='red')
+        .set_global_opts(
+            tooltip_opts=opts.TooltipOpts(
+                trigger='axis',
+                axis_pointer_type='cross',
+            ),
+            datazoom_opts=opts.DataZoomOpts(),
+            title_opts=opts.TitleOpts(title='对话轮数详情'),
+            # title_opts=opts.TitleOpts(title="对话轮数详情", subtitle="分钟"),
+            legend_opts=opts.LegendOpts(type_='scroll')
+        )
+    )
+    components.html(line.render_embed(),width=WIDTH3*0.8,height=HEIGHT3*0.4)
+
+
 render_header_and_date_selector_organization("数据总览", [], "select_box_organization", "date_input1")
 
 select_box_organization = st.session_state["select_box_organization"]
@@ -230,6 +404,7 @@ select_box2 = st.session_state["select_box2"]
 date_input2 = st.session_state["date_input2"]
 
 total_detail_df = query_data(df, date_input2)
+QRV_df5 = query_data2(df_sheet3, date_input2)
 
 try:
     avg_call_duration = round(total_detail_df["平均通话时长"].mean() / 60, 3)
@@ -325,10 +500,6 @@ width = 0.6
 
 # 绘制柱状图-平均通话时长
 ax.bar(time, avg_call_length, color='lightblue', width=width)
-# bar1=ax.bar(time, avg_call_length, color='lightblue')
-# for bar in bar1:
-#     plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), int(bar.get_height()),
-#              ha='center', va='bottom')
 
 # 绘制折线图-平均通话时长
 ax.plot(time, avg_call_length, marker='o', linestyle='-', color='b')
@@ -406,6 +577,17 @@ with col2_detail:
 with col3_detail:
     with st.expander("查看详情 - 日平均服务通话数"):
         st.pyplot(fig3)
+
+with st.container(border=True):
+    # 2个子页面
+    tab_calls, tab_duration = st.tabs(["通话时长详情", "对话轮数详情"])
+    with tab_calls:
+        freq2 = render_freq_selectbox('detail')
+        render_calls_detail(query_detail_fig(QRV_df5, freq2))
+    with tab_duration:
+        freq2 = render_freq_selectbox('detail2')
+        render_calls_detail2(query_detail_fig(QRV_df5, freq2))
+
 
 # QRV转人工趋势
 render_header_and_date_selector("QRV转人工趋势", [],
