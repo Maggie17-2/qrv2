@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from pyecharts.charts import WordCloud,Bar,Line,Pie,PictorialBar
 from pyecharts.globals import SymbolType,ThemeType
 from streamlit_echarts import st_pyecharts
+import streamlit.components.v1 as components
 from pyecharts import options as opts
 from datetime import datetime, timedelta, date
 import json
