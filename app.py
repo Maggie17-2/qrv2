@@ -913,7 +913,7 @@ data3 = compute_hourly_stats(df_sheet3, previous_month_start, previous_month_end
 data4 = compute_hourly_stats(df_sheet3, last_month_start, last_month_end)
 
 style={
-'小时':'{0}点',
+'小时':'{0}:00 ~ {0}:59',
 '转人工率':'{0:.2%}'
 }
 # table=data2.style.format(style).background_gradient(subset=['通话数'],cmap='Greens').highlight_max(subset=['转人工率'],props='background-color:pink')
