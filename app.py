@@ -724,47 +724,44 @@ total_quantity = df_filtered["数量"].sum()
 # 计算数量前10项的占比
 top_tags = df_filtered.nlargest(15, "数量").copy()
 top_tags["占比"] = top_tags["数量"]
-
-# 20240820版条形图
 top_tags_sorted = top_tags.sort_values(by='占比', ascending=True)
-bar1 = (
-    Bar(init_opts=opts.InitOpts(width=f'{1400*0.6}px',height=f'{960*0.6}px'))
-    .add_xaxis(top_tags_sorted['意图'].values.tolist())
-    .add_yaxis("", top_tags_sorted['占比'].values.tolist(),
-               itemstyle_opts=opts.ItemStyleOpts(color="#F4A460"))
-    .reversal_axis()
+
+# 20240919版变色条形图
+new_order = ['占比'] + [col for col in top_tags_sorted.columns if col != '占比']
+top_tags_sorted = top_tags_sorted.loc[:, new_order]
+dataset_source = [
+    ["占比", "意图", "数量"],
+    *top_tags_sorted.values.tolist()
+]
+
+c = (
+    Bar()
+    .add_dataset(
+        source=dataset_source,
+    )
+    .add_yaxis(
+        series_name="",
+        y_axis=[],
+        encode={"x": "数量", "y": "意图"},
+        label_opts=opts.LabelOpts(is_show=False),
+    )
     .set_series_opts(label_opts=opts.LabelOpts(position="right"))
     .set_global_opts(
-                     # title_opts=opts.TitleOpts(title="Bar-翻转 XY 轴"),
-                     xaxis_opts=opts.AxisOpts(splitline_opts=opts.SplitLineOpts(is_show=False)),
-                     yaxis_opts=opts.AxisOpts(splitline_opts=opts.SplitLineOpts(is_show=False),
-                                              axislabel_opts=opts.LabelOpts(rotate=45))
-                     )
+        # title_opts=opts.TitleOpts(title="Top 15"),
+        xaxis_opts=opts.AxisOpts(splitline_opts=opts.SplitLineOpts(is_show=False)),
+        yaxis_opts=opts.AxisOpts(type_="category", splitline_opts=opts.SplitLineOpts(is_show=False), axislabel_opts=opts.LabelOpts(rotate=45)),
+        visualmap_opts=opts.VisualMapOpts(
+            orient="horizontal",
+            pos_left="center",
+            min_=10,
+            max_=100,
+            range_text=["High", "Low"],
+            dimension=0,
+            range_color=["#D7DA8B", "#E15457"],
+        ),
+    )
 )
 
-# # 老版条形图
-# fig, ax1 = plt.subplots(figsize=(10, 6))
-#
-# # 绘制数量条形图
-# sns.barplot(
-#     x='数量',
-#     y='意图',
-#     data=top_tags,
-#     palette='Set2',
-#     ax=ax1
-# )
-#
-# # 添加占比文本
-# for i, (value, pct) in enumerate(zip(top_tags["数量"], top_tags["占比"])):
-#     # ax1.text(value, i, f'{pct:.0f}%', color='black', va='center')
-#     ax1.text(value, i, pct, color='black', va='center')
-#
-# # 设置X轴标签
-# ax1.set_xlabel('数量')
-# ax1.set_ylabel('')
-#
-# sns.despine(left=True, bottom=True)
-# # 老版条形图
 
 # 生成词云图数据
 words = df_filtered["意图"].tolist()
@@ -784,7 +781,7 @@ with st.container():
     # 条形图
     with col6:
         # st.pyplot(fig)
-        st.components.v1.html(bar1.render_embed(), width=1400 * 0.6, height=960 * 0.6)
+        st.components.v1.html(c.render_embed(), width=1400 * 0.6, height=960 * 0.6)
 
     # 词云图
     with col7:
