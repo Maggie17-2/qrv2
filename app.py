@@ -757,7 +757,7 @@ c = (
             max_=100,
             range_text=["High", "Low"],
             dimension=0,
-            range_color=["#D7DA8B", "#E15457"],
+            range_color=["#00FFFF", "#D7DA8B", "#E15457"],
         ),
     )
 )
