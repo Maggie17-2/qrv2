@@ -745,7 +745,7 @@ dataset_source = [
 ]
 
 c = (
-    Bar()
+    Bar(init_opts=opts.InitOpts(width=f'{1400*0.6}px',height=f'{960*0.6}px'))
     .add_dataset(
         source=dataset_source,
     )
