@@ -174,6 +174,16 @@ def yt_stats(df, start_date, end_date):
     df_filtered = result[~result["意图"].isin(exclusions)]
     df_filtered = df_filtered[~result["意图"].str.match(r'^-?\d+(\.\d+)?$')]
 
+    # 20241029补充
+    df_filtered['意图'] = df_filtered['意图'].replace({'疫苗咨询-HPV疫苗': '疫苗咨询-HPV疫苗', 'HPV疫苗': '疫苗咨询-HPV疫苗'})
+    df_filtered['意图'] = df_filtered['意图'].replace({'老年人流感2': '老年人流感'})
+    df_filtered['意图'] = df_filtered['意图'].replace({'流感疫苗': '疫苗咨询-流感疫苗'})
+    df_filtered['意图'] = df_filtered['意图'].replace({'hpv第二针': '疫苗咨询-HPV第二针'})
+    df_filtered['意图'] = df_filtered['意图'].replace({'乙肝疫苗': '疫苗咨询-乙肝疫苗'})
+    df_filtered['意图'] = df_filtered['意图'].replace({'疱疹疫苗': '疫苗咨询-疱疹疫苗'})
+
+    df_filtered = df_filtered.groupby('意图', as_index=False).sum()
+
     return df_filtered
 
 def data_filtering(date_key, filter_date=True):
