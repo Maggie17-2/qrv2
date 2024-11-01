@@ -835,7 +835,7 @@ except KeyError:
 WIDTH=1400
 HEIGHT=960
 print(months)
-picbar=PictorialBar(init_opts=opts.InitOpts(theme=ThemeType.WONDERLAND,width=f'{WIDTH*0.6}px',height=f'{HEIGHT*0.6}px'))
+picbar=PictorialBar(init_opts=opts.InitOpts(theme=ThemeType.WONDERLAND,width=f'{WIDTH*0.6}px',height=f'{HEIGHT*0.8}px'))
 picbar.add_xaxis(months.tolist())
 picbar.add_yaxis(
         '对话数',
@@ -967,14 +967,14 @@ with st.container():
     # col13, col14, col15 = st.columns([1.6, 0.8, 0.5])
     col13, col14 = st.columns([2, 1])
     with col13:
-        st.components.v1.html(picbar.render_embed(),width=WIDTH*0.6, height=HEIGHT*0.6)
+        st.components.v1.html(picbar.render_embed(),width=WIDTH*0.6, height=HEIGHT*0.8)
     with col14:
         st.write(f'{current_month_start.month}月(截止{today.date()})分时段统计')
-        st.dataframe(table2, width=int(WIDTH * 0.3), height=int(HEIGHT * 0.15), hide_index=True)
+        st.dataframe(table2, width=int(WIDTH * 0.3), height=int(HEIGHT * 0.2), hide_index=True)
         st.write(f'{previous_month_start.month}月分时段统计')
-        st.dataframe(table3, width=int(WIDTH * 0.3), height=int(HEIGHT * 0.15), hide_index=True)
+        st.dataframe(table3, width=int(WIDTH * 0.3), height=int(HEIGHT * 0.2), hide_index=True)
         st.write(f'{last_month_start.month}月分时段统计')
-        st.dataframe(table4, width=int(WIDTH * 0.3), height=int(HEIGHT * 0.15), hide_index=True)
+        st.dataframe(table4, width=int(WIDTH * 0.3), height=int(HEIGHT * 0.2), hide_index=True)
 
 
 # 近3个月意图分类图
